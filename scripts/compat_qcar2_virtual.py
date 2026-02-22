@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Compatibility helpers for PAL QCar imports in containerized virtual sessions."""
 
-from __future__ import annotations
-
 import builtins
 import io
 import json
@@ -38,7 +36,7 @@ _QCAR2_VIRTUAL_CONFIG = {
 }
 
 
-def patch_qcar2_virtual_config() -> None:
+def patch_qcar2_virtual_config():
     """Force PAL QCar configuration to virtual QCar2 without user input or file writes."""
 
     if getattr(builtins, "_qcar2_virtual_cfg_patched", False):
@@ -66,7 +64,7 @@ def patch_qcar2_virtual_config() -> None:
 
         return real_open(file, mode, *args, **kwargs)
 
-    def _safe_input(prompt: str = ""):
+    def _safe_input(prompt=""):
         if "virtual QCar1 or QCar2" in str(prompt):
             return "2"
         return real_input(prompt)
@@ -74,4 +72,3 @@ def patch_qcar2_virtual_config() -> None:
     builtins.open = _safe_open
     builtins.input = _safe_input
     builtins._qcar2_virtual_cfg_patched = True
-

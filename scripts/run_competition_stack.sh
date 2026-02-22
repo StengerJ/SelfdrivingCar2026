@@ -3,49 +3,36 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Default stack configuration (no command-line arguments required).
+# Default configuration. This launcher takes no command-line arguments.
 QCAR_ID=0
 VIRTUAL_PORT_STRIDE=10
 NODES="10,2,4,14,20,22,9,7,0"
-CRUISE_SPEED=0.65
+CRUISE_SPEED=0.55
 SAMPLE_RATE=100
-DETECTION_PORT=18666
-DEPTH_PORT=18777
-INFERENCE_MODE="custom"
+YOLO_MODEL_PATH="${SCRIPT_DIR}/models/road_signs.pt"
+YOLO_CONFIDENCE=0.35
+YOLO_IOU=0.45
+YOLO_IMGSZ=640
 
 if (($# > 0)); then
-  echo "run_competition_stack.sh takes no arguments. Edit defaults inside the script if needed."
+  echo "run_competition_stack.sh takes no arguments. Edit defaults inside this script if needed."
   exit 1
 fi
 
-VIDEO3D_PORT=$((18965 + QCAR_ID * VIRTUAL_PORT_STRIDE))
-
-python3 "${SCRIPT_DIR}/qcar2_perception_server.py" \
-  --stream-ip localhost \
-  --stream-port "${DETECTION_PORT}" \
-  --depth-port "${DEPTH_PORT}" \
-  --qcar-id "${QCAR_ID}" \
-  --virtual-port-stride "${VIRTUAL_PORT_STRIDE}" \
-  --video3d-port "${VIDEO3D_PORT}" \
-  --inference-mode "${INFERENCE_MODE}" &
-PERCEPTION_PID=$!
-
-cleanup() {
-  if kill -0 "${PERCEPTION_PID}" >/dev/null 2>&1; then
-    kill "${PERCEPTION_PID}" >/dev/null 2>&1 || true
-    wait "${PERCEPTION_PID}" >/dev/null 2>&1 || true
-  fi
-}
-
-trap cleanup EXIT INT TERM
-
-# Let the perception stream server start.
-sleep 5
+if [[ ! -f "${YOLO_MODEL_PATH}" ]]; then
+  echo "YOLO model not found at ${YOLO_MODEL_PATH}"
+  echo "Set YOLO_MODEL_PATH in this script to your trained road-sign model."
+  exit 1
+fi
 
 python3 "${SCRIPT_DIR}/qcar2_road_rules_driver.py" \
+  --model-path "${YOLO_MODEL_PATH}" \
+  --confidence "${YOLO_CONFIDENCE}" \
+  --iou "${YOLO_IOU}" \
+  --imgsz "${YOLO_IMGSZ}" \
   --qcar-id "${QCAR_ID}" \
   --virtual-port-stride "${VIRTUAL_PORT_STRIDE}" \
-  --detection-port "${DETECTION_PORT}" \
   --nodes "${NODES}" \
   --cruise-speed "${CRUISE_SPEED}" \
   --sample-rate "${SAMPLE_RATE}"
+

@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 """Compatibility helper for environments where os.getlogin() is unavailable."""
 
-from __future__ import annotations
-
 import getpass
 import os
 
 
-def patch_os_getlogin() -> None:
+def patch_os_getlogin():
     """Patch os.getlogin with a safe fallback if needed.
 
     Quanser HAL/PAL/PIT modules call os.getlogin() at import time.
@@ -19,7 +17,7 @@ def patch_os_getlogin() -> None:
 
     original_getlogin = os.getlogin
 
-    def _safe_getlogin() -> str:
+    def _safe_getlogin():
         try:
             return original_getlogin()
         except OSError:
@@ -32,6 +30,5 @@ def patch_os_getlogin() -> None:
             except Exception:
                 return "unknown"
 
-    os.getlogin = _safe_getlogin  # type: ignore[assignment]
-    os._qcar_safe_getlogin_patched = True  # type: ignore[attr-defined]
-
+    os.getlogin = _safe_getlogin
+    os._qcar_safe_getlogin_patched = True
